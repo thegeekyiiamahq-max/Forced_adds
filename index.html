@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0d0d0d">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Touch Grass">
+<link rel="manifest" href="manifest.json">
+<title>Touch Grass</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Righteous&family=Space+Mono:wght@400;700&display=swap');
+
+  :root {
+    --bg: #0d0d0d;
+    --fg: #f5f0e8;
+    --accent: #ff5733;
+    --green: #33ff99;
+    --blue: #33aaff;
+    --yellow: #ffdd33;
+    --pink: #ff88cc;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'Space Mono', monospace;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px);
+    pointer-events: none;
+    z-index: 9998;
+  }
+
+  .bg-text {
+    position: fixed;
+    font-family: 'Righteous', cursive;
+    font-size: clamp(50px, 18vw, 130px);
+    color: rgba(255,255,255,0.022);
+    white-space: nowrap;
+    user-select: none;
+    pointer-events: none;
+  }
+  .bg-text:nth-child(1) { top: 8%;  left: -3%;  transform: rotate(-5deg); }
+  .bg-text:nth-child(2) { top: 42%; right: -5%; transform: rotate(3deg); }
+  .bg-text:nth-child(3) { bottom: 4%; left: 8%;  transform: rotate(-2deg); }
+
+  /* ── INSTALL BANNER ── */
+  .install-banner {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    background: var(--green);
+    color: #0d0d0d;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 500;
+    transform: translateY(-100%);
+    transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .install-banner.show { transform: translateY(0); }
+  .install-banner button {
+    background: #0d0d0d;
+    color: var(--green);
+    border: none;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    padding: 6px 14px;
+    cursor: pointer;
+    text-transform: uppercase;
+  }
+
+  /* ── PERMISSION BANNER ── */
+  .permission-banner {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: #1a1a1a;
+    border-top: 2px solid var(--yellow);
+    padding: 16px 20px;
+    z-index: 400;
+    transform: translateY(100%);
+    transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .permission-banner.show { transform: translateY(0); }
+  .permission-banner p {
+    font-size: 11px;
+    color: #888;
+    letter-spacing: 0.1em;
+    margin-bottom: 12px;
+    line-height: 1.5;
+  }
+  .permission-banner p strong { color: var(--yellow); }
+  .perm-btn {
+    display: block;
+    width: 100%;
+    background: var(--yellow);
+    color: #0d0d0d;
+    border: none;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 13px;
+    cursor: pointer;
+  }
+
+  /* ── MAIN SCREEN ── */
+  .screen {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 24px 40px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .app-title {
+    font-family: 'Righteous', cursive;
+    font-size: 13px;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: #333;
+    margin-bottom: 28px;
+  }
+
+  /* Status pill */
+  .status-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #151515;
+    border: 1px solid #222;
+    padding: 8px 18px;
+    margin-bottom: 36px;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #555;
+    transition: all 0.3s;
+  }
+  .status-pill.running { border-color: var(--green); color: var(--green); }
+  .status-pill.running .dot { background: var(--green); animation: blink 1s ease infinite; }
+  .status-pill .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #333;
+    flex-shrink: 0;
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.2; }
+  }
+
+  /* Countdown */
+  .countdown-wrap { text-align: center; margin-bottom: 8px; }
+  .countdown-label {
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: #333;
+    margin-bottom: 6px;
+  }
+  .countdown-num {
+    font-family: 'Righteous', cursive;
+    font-size: clamp(72px, 25vw, 120px);
+    color: #1c1c1c;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    transition: color 0.3s;
+  }
+  .countdown-num.soon { color: #2a1208; }
+  .countdown-num.very-soon { animation: pulseRed 0.4s ease infinite alternate; }
+  @keyframes pulseRed {
+    from { color: var(--accent); }
+    to   { color: #ff8866; }
+  }
+  .countdown-unit {
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    color: #2a2a2a;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  /* Controls */
+  .controls { width: 100%; max-width: 320px; margin-top: 28px; }
+
+  .ctrl-label {
+    font-size: 9px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: #2e2e2e;
+    margin-bottom: 10px;
+    text-align: center;
+  }
+
+  .stepper {
+    display: flex;
+    align-items: stretch;
+    border: 1px solid #1e1e1e;
+    margin-bottom: 10px;
+  }
+  .step-btn {
+    background: none;
+    border: none;
+    color: #444;
+    font-family: 'Space Mono', monospace;
+    font-size: 20px;
+    width: 52px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .step-btn:hover { background: #1a1a1a; color: var(--fg); }
+  .step-val {
+    flex: 1;
+    text-align: center;
+    font-family: 'Righteous', cursive;
+    font-size: 24px;
+    padding: 12px 0;
+    border-left: 1px solid #1e1e1e;
+    border-right: 1px solid #1e1e1e;
+    color: var(--fg);
+    line-height: 1;
+  }
+  .step-unit {
+    font-size: 9px;
+    color: #333;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 12px;
+  }
+
+  .presets {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 14px;
+  }
+  .preset {
+    background: none;
+    border: 1px solid #1e1e1e;
+    color: #3a3a3a;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    padding: 6px 12px;
+    cursor: pointer;
+    letter-spacing: 0.1em;
+    transition: all 0.15s;
+  }
+  .preset:hover, .preset.on { border-color: var(--accent); color: var(--accent); background: rgba(255,87,51,0.07); }
+
+  .main-btn {
+    display: block;
+    width: 100%;
+    border: none;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 15px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.1s;
+  }
+  .main-btn:active { transform: scale(0.98); }
+  .main-btn.start { background: var(--green); color: #0d0d0d; }
+  .main-btn.stop  { background: var(--accent); color: #fff; }
+
+  .flash {
+    text-align: center;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--green);
+    height: 18px;
+    opacity: 0;
+    margin-top: 10px;
+    transition: opacity 0.3s;
+    text-transform: uppercase;
+  }
+  .flash.show { opacity: 1; }
+
+  /* ── INTERRUPT OVERLAY ── */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    pointer-events: none;
+    transition: background 0.3s;
+    padding: 20px;
+  }
+  .overlay.active {
+    background: rgba(0,0,0,0.93);
+    pointer-events: all;
+  }
+
+  .ad-card {
+    width: 100%;
+    max-width: 420px;
+    background: var(--bg);
+    border: 2px solid #fff;
+    padding: 48px 28px 32px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    transform: scale(0.7) rotate(-4deg);
+    opacity: 0;
+    transition: transform 0.5s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s;
+  }
+  .overlay.active .ad-card {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  .ad-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 5px;
+    background: var(--card-color, var(--accent));
+  }
+
+  .ad-meta {
+    position: absolute;
+    top: 12px; left: 14px;
+    font-size: 8px;
+    letter-spacing: 0.2em;
+    color: #444;
+    text-transform: uppercase;
+  }
+  .ad-num {
+    position: absolute;
+    top: 12px; right: 14px;
+    font-size: 8px;
+    letter-spacing: 0.15em;
+    color: #333;
+  }
+
+  .ad-emoji {
+    font-size: 64px;
+    display: block;
+    margin-bottom: 14px;
+    animation: popIn 0.5s cubic-bezier(0.34,1.8,0.64,1) 0.15s both;
+  }
+  @keyframes popIn {
+    from { transform: scale(0) rotate(15deg); opacity: 0; }
+    to   { transform: scale(1) rotate(0deg); opacity: 1; }
+  }
+
+  .ad-hed {
+    font-family: 'Righteous', cursive;
+    font-size: clamp(24px, 7vw, 40px);
+    color: var(--fg);
+    line-height: 1.05;
+    margin-bottom: 8px;
+  }
+  .ad-hed em { color: var(--card-color, var(--accent)); font-style: normal; }
+
+  .ad-body {
+    font-size: 12px;
+    color: #777;
+    line-height: 1.65;
+    margin-bottom: 24px;
+    min-height: 36px;
+  }
+  .ad-body strong { color: #aaa; }
+
+  .dismiss {
+    display: block;
+    width: 100%;
+    background: var(--fg);
+    color: var(--bg);
+    border: none;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    padding: 14px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.1s;
+  }
+  .dismiss::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--card-color, var(--accent));
+    transform: translateX(-100%);
+    transition: transform 0.22s ease;
+  }
+  .dismiss:hover::after { transform: translateX(0); }
+  .dismiss span { position: relative; z-index: 1; }
+  .dismiss:hover span { color: #fff; }
+  .dismiss:active { transform: scale(0.98); }
+
+  .glitch {
+    position: absolute;
+    inset: 0;
+    background: var(--card-color, var(--accent));
+    opacity: 0;
+    pointer-events: none;
+  }
+  .overlay.active .glitch { animation: gFlash 0.35s ease both; }
+  @keyframes gFlash { 0% { opacity: 0.35; } 100% { opacity: 0; } }
+
+  /* notif denied warning */
+  .notif-warn {
+    font-size: 9px;
+    color: #333;
+    text-align: center;
+    letter-spacing: 0.1em;
+    margin-top: 14px;
+    line-height: 1.5;
+    display: none;
+  }
+  .notif-warn.show { display: block; }
+  .notif-warn a { color: var(--accent); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<div class="bg-text">SKILL ISSUE</div>
+<div class="bg-text">TOUCH GRASS</div>
+<div class="bg-text">HYDRATE</div>
+
+<!-- Install banner -->
+<div class="install-banner" id="installBanner">
+  <span>📲 Install as app</span>
+  <button id="installBtn">Install</button>
+</div>
+
+<!-- Permission banner -->
+<div class="permission-banner" id="permBanner">
+  <p><strong>Enable notifications</strong> so interruptions fire while you're doomscrolling — not just when this tab is open.</p>
+  <button class="perm-btn" id="permBtn">Allow Notifications</button>
+</div>
+
+<!-- Main screen -->
+<div class="screen">
+  <div class="app-title">Touch Grass™</div>
+
+  <div class="status-pill" id="statusPill">
+    <div class="dot"></div>
+    <span id="statusText">not running</span>
+  </div>
+
+  <div class="countdown-wrap">
+    <div class="countdown-label">next interruption in</div>
+    <div class="countdown-num" id="cdNum">—</div>
+    <div class="countdown-unit" id="cdUnit">waiting</div>
+  </div>
+
+  <div class="controls">
+    <div class="ctrl-label">interrupt every</div>
+
+    <div class="stepper">
+      <button class="step-btn" onclick="adjust(-1)">−</button>
+      <div class="step-val" id="stepVal">15</div>
+      <button class="step-btn" onclick="adjust(1)">+</button>
+    </div>
+    <div class="step-unit" id="stepUnit">seconds</div>
+
+    <div class="presets">
+      <button class="preset on" onclick="setPreset(15,this)">15s</button>
+      <button class="preset" onclick="setPreset(30,this)">30s</button>
+      <button class="preset" onclick="setPreset(60,this)">1 min</button>
+      <button class="preset" onclick="setPreset(300,this)">5 min</button>
+      <button class="preset" onclick="setPreset(900,this)">15 min</button>
+    </div>
+
+    <button class="main-btn start" id="mainBtn" onclick="toggleTimer()">
+      Start Interruptions
+    </button>
+
+    <div class="flash" id="flash">✓ timer updated</div>
+
+    <div class="notif-warn" id="notifWarn">
+      Notifications blocked — interruptions only work while this tab is open.<br>
+      <a href="javascript:void(0)" onclick="requestPermission()">Tap to enable →</a>
+    </div>
+  </div>
+</div>
+
+<!-- Interrupt overlay -->
+<div class="overlay" id="overlay">
+  <div class="ad-card" id="adCard">
+    <div class="glitch"></div>
+    <div class="ad-meta">📢 Sponsored by Reality™</div>
+    <div class="ad-num" id="adNum">#1</div>
+    <span class="ad-emoji" id="adEmoji">🌿</span>
+    <div class="ad-hed" id="adHed">Touch Grass</div>
+    <div class="ad-body" id="adBody">It's free. It's outside. You know where outside is.</div>
+    <button class="dismiss" onclick="dismiss()"><span id="dismissTxt">yeah yeah, dismiss</span></button>
+  </div>
+</div>
+
+<script>
+  // ── Messages ──
+  const MSGS = [
+    { emoji:'🌿', hed:'Touch Grass. <em>It\'s Free!</em>', body:'Outside exists. Dirt is real. You used to go there.', dismiss:'fine, i\'ll go touch some grass', color:'#33ff99', notif:'Touch Grass. It\'s Free!', nbody:'Outside exists. Dirt is real.' },
+    { emoji:'💧', hed:'Drink Water.', body:'Seriously. Your body is <strong>mostly water.</strong> For now.', dismiss:'ok ok, getting water', color:'#33aaff', notif:'Drink Water.', nbody:'Your body is mostly water. For now.' },
+    { emoji:'📵', hed:'You\'re Not Addicted.', body:'<strong>You:</strong> I\'m not addicted.<br><strong>You, right now:</strong> 🙃', dismiss:'i can quit whenever i want', color:'#ff5733', notif:'You\'re Not Addicted.', nbody:'You, right now: 🙃' },
+    { emoji:'🧘', hed:'Stretch.', body:'You\'ve been... <strong>stuck.</strong><br>Your spine has opinions about this.', dismiss:'ugh, fine, stretching', color:'#ffdd33', notif:'Stretch.', nbody:'You\'ve been stuck. Your spine has opinions.' },
+    { emoji:'🌄', hed:'Look At The View.', body:'No.<br><strong>Not the phone.</strong><br>The actual view. Out there.', dismiss:'ok i looked (i didn\'t)', color:'#ff88cc', notif:'Look At The View.', nbody:'No. Not the phone. The actual view.' },
+  ];
+
+  // ── State ──
+  let pending = 15;   // interval user has set but not applied
+  let interval = 15;  // active interval
+  let secs = 0;
+  let ticker = null;
+  let running = false;
+  let count = 0;
+  let lastIdx = -1;
+  let sw = null;
+  let notifGranted = false;
+  let deferredInstall = null;
+
+  // ── Service Worker ──
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').then(reg => {
+      sw = reg;
+      console.log('SW registered');
+    });
+  }
+
+  // ── Install prompt ──
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredInstall = e;
+    document.getElementById('installBanner').classList.add('show');
+  });
+
+  document.getElementById('installBtn').onclick = async () => {
+    if (!deferredInstall) return;
+    deferredInstall.prompt();
+    const { outcome } = await deferredInstall.userChoice;
+    if (outcome === 'accepted') document.getElementById('installBanner').classList.remove('show');
+    deferredInstall = null;
+  };
+
+  window.addEventListener('appinstalled', () => {
+    document.getElementById('installBanner').classList.remove('show');
+  });
+
+  // ── Notifications ──
+  async function requestPermission() {
+    const result = await Notification.requestPermission();
+    notifGranted = result === 'granted';
+    updateNotifUI();
+    if (notifGranted) document.getElementById('permBanner').classList.remove('show');
+  }
+
+  function updateNotifUI() {
+    const warn = document.getElementById('notifWarn');
+    if (Notification.permission === 'granted') {
+      notifGranted = true;
+      warn.classList.remove('show');
+    } else if (Notification.permission === 'denied') {
+      warn.classList.add('show');
+    }
+  }
+
+  function scheduleNotif(msg, delayMs) {
+    if (!sw || !notifGranted) return;
+    sw.active?.postMessage({
+      type: 'SCHEDULE_NOTIFICATION',
+      delay: delayMs,
+      message: msg.notif,
+      body: msg.nbody,
+      tag: 'touch-grass-' + Date.now()
+    });
+  }
+
+  // ── Timer ──
+  function toggleTimer() {
+    if (running) {
+      stopTimer();
+    } else {
+      // Ask for notification permission on first start
+      if (Notification.permission === 'default') {
+        document.getElementById('permBanner').classList.add('show');
+      }
+      interval = pending;
+      startTimer();
+    }
+  }
+
+  function startTimer() {
+    running = true;
+    secs = interval;
+    clearInterval(ticker);
+    ticker = setInterval(tick, 1000);
+    updateUI();
+    scheduleNextNotif();
+  }
+
+  function stopTimer() {
+    running = false;
+    clearInterval(ticker);
+    ticker = null;
+    updateUI();
+  }
+
+  function tick() {
+    secs--;
+    renderCountdown();
+    if (secs <= 0) {
+      showAd();
+      secs = interval;
+      scheduleNextNotif();
+    }
+  }
+
+  function scheduleNextNotif() {
+    const msg = MSGS[Math.floor(Math.random() * MSGS.length)];
+    scheduleNotif(msg, interval * 1000);
+  }
+
+  function renderCountdown() {
+    const el = document.getElementById('cdNum');
+    el.textContent = secs;
+    el.classList.toggle('soon', secs <= Math.min(5, interval * 0.2) && secs > 3);
+    el.classList.toggle('very-soon', secs <= 3 && secs > 0);
+  }
+
+  function updateUI() {
+    const pill = document.getElementById('statusPill');
+    const btn  = document.getElementById('mainBtn');
+    const unit = document.getElementById('cdUnit');
+
+    if (running) {
+      pill.classList.add('running');
+      document.getElementById('statusText').textContent = 'running';
+      btn.textContent = 'Stop';
+      btn.className = 'main-btn stop';
+      unit.textContent = 'seconds — you\'ve been warned';
+      renderCountdown();
+    } else {
+      pill.classList.remove('running');
+      document.getElementById('statusText').textContent = 'not running';
+      btn.textContent = 'Start Interruptions';
+      btn.className = 'main-btn start';
+      document.getElementById('cdNum').textContent = '—';
+      unit.textContent = 'waiting';
+      document.getElementById('cdNum').classList.remove('soon','very-soon');
+    }
+  }
+
+  // ── Stepper ──
+  function getStep(v) {
+    if (v < 60)   return 1;
+    if (v < 300)  return 5;
+    if (v < 3600) return 30;
+    return 60;
+  }
+
+  function adjust(dir) {
+    pending = Math.max(5, pending + dir * getStep(pending));
+    renderSetter();
+    clearPresets();
+    if (running) { interval = pending; secs = Math.min(secs, interval); }
+  }
+
+  function setPreset(val, btn) {
+    pending = val;
+    renderSetter();
+    clearPresets();
+    btn.classList.add('on');
+    if (running) { interval = pending; secs = Math.min(secs, interval); }
+  }
+
+  function clearPresets() { document.querySelectorAll('.preset').forEach(b => b.classList.remove('on')); }
+
+  function renderSetter() {
+    const v = pending;
+    const el = document.getElementById('stepVal');
+    const unit = document.getElementById('stepUnit');
+    if (v < 60)   { el.textContent = v;        unit.textContent = 'seconds'; }
+    else if (v < 3600) { el.textContent = v/60 % 1 === 0 ? v/60 : (v/60).toFixed(1); unit.textContent = 'minutes'; }
+    else          { el.textContent = v/3600 % 1 === 0 ? v/3600 : (v/3600).toFixed(1); unit.textContent = 'hours'; }
+  }
+
+  // ── Ad ──
+  function pickMsg() {
+    let idx;
+    do { idx = Math.floor(Math.random() * MSGS.length); } while (idx === lastIdx && MSGS.length > 1);
+    lastIdx = idx;
+    return MSGS[idx];
+  }
+
+  function showAd() {
+    count++;
+    const m = pickMsg();
+    document.getElementById('adEmoji').textContent = m.emoji;
+    document.getElementById('adHed').innerHTML = m.hed;
+    document.getElementById('adBody').innerHTML = m.body;
+    document.getElementById('dismissTxt').textContent = m.dismiss;
+    document.getElementById('adNum').textContent = `#${count}`;
+    document.getElementById('adCard').style.setProperty('--card-color', m.color);
+
+    // re-trigger emoji animation
+    const e = document.getElementById('adEmoji');
+    e.style.animation = 'none'; e.offsetHeight; e.style.animation = '';
+
+    document.getElementById('overlay').classList.add('active');
+  }
+
+  function dismiss() {
+    document.getElementById('overlay').classList.remove('active');
+  }
+
+  // ── Init ──
+  updateNotifUI();
+  renderSetter();
+  updateUI();
+</script>
+</body>
+</html>
